@@ -1,0 +1,5 @@
+task-dispatch-agent  v1.0
+打包日期: 2026-11-17
+协议: /api/health, /api/tasks/claim, /api/tasks/{id}/heartbeat|complete|fail
+Python: >= 3.7，仅标准库，零第三方依赖
+兼容: task-dispatch 服务端（配对 / 领取 / 回传协议一致即可混用）

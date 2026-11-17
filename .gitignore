@@ -1,0 +1,24 @@
+# 本地配置与凭证（含密钥，绝不入库）
+.env
+.dispatch.env
+agent-cred.json
+*.cred.json
+backups/
+
+# SQLite 运行时数据
+dispatch.db
+dispatch.db-wal
+dispatch.db-shm
+*.db
+*.db-shm
+*.db-wal
+
+# 日志、缓存与系统文件（运行时生成）
+*.log
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# WorkBuddy 工作区数据
+.workbuddy/

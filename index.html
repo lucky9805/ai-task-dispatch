@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>任务下发与 Agent 协作中心</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:26px; background:#f6f7f9; color:#1c2128;
+         font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+  .wrap { max-width:1120px; margin:0 auto; }
+  h1 { font-size:21px; margin:0 0 4px; }
+  h1 small { font-size:12px; font-weight:400; color:#6b7280; margin-left:10px; }
+  .nav { display:flex; gap:8px; margin:14px 0 4px; flex-wrap:wrap; }
+  .nav a { font-size:12px; color:#2563eb; text-decoration:none; padding:5px 12px;
+           border:1px solid #dbeafe; border-radius:16px; background:#eff6ff; }
+  .nav a:hover { background:#dbeafe; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:18px 20px; margin:16px 0; }
+  .card h2 { font-size:15px; margin:0 0 4px; color:#1f2937; }
+  .card .desc { font-size:12px; color:#6b7280; margin:0 0 14px; }
+  form { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+  label { display:flex; flex-direction:column; gap:5px; font-size:12px; color:#6b7280; flex:1 1 200px; }
+  input { padding:8px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; background:#fff; color:#1c2128; }
+  input:focus { outline:none; border-color:#2563eb; }
+  button { padding:9px 18px; border:0; border-radius:6px; background:#2563eb; color:#fff;
+           font-size:13px; cursor:pointer; height:35px; white-space:nowrap; }
+  button:hover { background:#1d4ed8; }
+  button.ghost { background:#fff; color:#374151; border:1px solid #d1d5db; }
+  button.ghost:hover { background:#f3f4f6; }
+  button.danger { background:#fff; color:#b91c1c; border:1px solid #fecaca; }
+  button.danger:hover { background:#fef2f2; }
+  button.sm { padding:5px 11px; height:28px; font-size:12px; }
+  .hint { margin-top:10px; font-size:12px; color:#059669; min-height:18px; }
+  .muted { color:#9ca3af; font-size:12px; font-weight:400; }
+  table { width:100%; border-collapse:collapse; background:#fff; }
+  .table-wrap { border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-top:6px; }
+  th,td { padding:9px 12px; text-align:left; border-bottom:1px solid #f0f1f3; font-size:13px; vertical-align:middle; }
+  th { background:#fafafa; color:#6b7280; font-weight:500; font-size:12px; }
+  tr:last-child td { border-bottom:0; }
+  .tag { display:inline-block; padding:2px 9px; border-radius:10px; font-size:11px; }
+  .t-paired { background:#dcfce7; color:#15803d; }
+  .t-wait { background:#f3f4f6; color:#4b5563; }
+  .t-revoked { background:#fee2e2; color:#b91c1c; }
+  .t-pending { background:#f3f4f6; color:#4b5563; }
+  .t-running { background:#dbeafe; color:#1d4ed8; }
+  .t-succeeded { background:#dcfce7; color:#15803d; }
+  .t-failed { background:#fee2e2; color:#b91c1c; }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#c4c9d1; margin-right:5px; }
+  .dot.on { background:#16a34a; box-shadow:0 0 0 3px rgba(22,163,74,.14); }
+  tr.agent-online { background:#f0fdf4; }
+  tr.agent-online td:first-child { box-shadow:inset 3px 0 0 #16a34a; }
+  tr.agent-offline { color:#9ca3af; }
+  tr.agent-offline b { color:#6b7280; }
+  .on-badge { display:inline-block; padding:2px 9px; border-radius:10px; font-size:11px;
+              background:#dcfce7; color:#15803d; font-weight:500; }
+  .off-badge { display:inline-block; padding:2px 9px; border-radius:10px; font-size:11px;
+               background:#f3f4f6; color:#6b7280; }
+  tr.agent-group td { background:#fafafa; color:#6b7280; font-size:11px; font-weight:500;
+                      padding:5px 12px; letter-spacing:.3px; }
+  .cat-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px;
+               background:#ede9fe; color:#6d28d9; font-weight:500; margin-right:6px; }
+  .cat-badge.none { background:#f3f4f6; color:#9ca3af; font-weight:400; }
+  tr.agent-archived { opacity:.55; background:#f9fafb; }
+  tr.agent-archived b { text-decoration:line-through; text-decoration-color:#c4c9d1; }
+  .agent-toolbar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:10px 0;
+                   padding:9px 12px; background:#fafafa; border:1px solid #eef0f3; border-radius:8px; }
+  .agent-toolbar label { display:flex; align-items:center; gap:6px; font-size:12px;
+                         color:#4b5563; cursor:pointer; margin:0; }
+  .agent-toolbar .muted { font-size:12px; }
+  .agent-toolbar input[type=checkbox] { width:auto; margin:0; cursor:pointer; }
+  .cat-input { width:96px; padding:5px 7px; border:1px solid #d1d5db; border-radius:6px;
+               font-size:12px; }
+  .steps { counter-reset:s; list-style:none; padding:0; margin:0 0 16px; }
+  .steps li { position:relative; padding:8px 0 8px 40px; font-size:13px; color:#374151; border-bottom:1px dashed #eef0f2; }
+  .steps li:last-child { border-bottom:0; }
+  .steps li::before { counter-increment:s; content:counter(s); position:absolute; left:0; top:8px;
+    width:24px; height:24px; border-radius:50%; background:#eff6ff; color:#2563eb;
+    font-size:12px; font-weight:500; display:flex; align-items:center; justify-content:center; }
+  .pair-result { display:none; margin-top:14px; padding:16px; border:1px solid #bfdbfe;
+                 background:#f8fbff; border-radius:8px; }
+  .pair-result.show { display:block; }
+  .code-box { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:10px 0 14px; }
+  .code { font:600 22px/1 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:2px;
+          color:#1d4ed8; background:#fff; border:1px dashed #93c5fd; border-radius:8px; padding:12px 18px; cursor:pointer; }
+  .code:hover { background:#eff6ff; }
+  .cmd { display:flex; align-items:center; gap:8px; background:#1f2937; color:#e5e7eb; border-radius:6px;
+         padding:9px 12px; margin:6px 0; font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .cmd code { flex:1; word-break:break-all; }
+  .cmd button { height:26px; padding:3px 10px; font-size:11px; background:#374151; }
+  .cmd button:hover { background:#4b5563; }
+  .stats { display:flex; gap:10px; margin:18px 0; flex-wrap:wrap; }
+  .stat { flex:1 1 130px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:12px 16px; }
+  .stat b { display:block; font-size:22px; line-height:1.2; }
+  .stat span { font-size:12px; color:#6b7280; }
+  .out { max-width:260px; white-space:pre-wrap; word-break:break-all; color:#4b5563; font-size:12px; }
+  .foot { margin-top:14px; font-size:12px; color:#9ca3af; }
+  code.inline { background:#f3f4f6; padding:1px 5px; border-radius:4px; }
+  .subhead { font-size:12px; color:#374151; font-weight:500; margin:14px 0 6px; }
+  .selftest-summary { font-size:13px; margin:6px 0 12px; }
+  .out2 { max-width:520px; white-space:pre-wrap; word-break:break-all; color:#4b5563; font-size:12px; }
+  .work-state { padding:10px 12px; border-radius:6px; background:#f8fbff; border:1px solid #bfdbfe;
+                font-size:13px; color:#1e40af; margin:10px 0; }
+  .work-task { padding:14px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; margin:10px 0; }
+  .work-task .cmdline { font:12px/1.5 ui-monospace,Menlo,monospace; background:#1f2937; color:#e5e7eb;
+                        padding:8px 10px; border-radius:6px; margin-top:6px; word-break:break-all; }
+  .work-task .meta { font-size:12px; color:#6b7280; }
+  .tl { font-size:12px; line-height:1.75; white-space:nowrap; }
+  .tl-row { display:flex; gap:6px; align-items:baseline; }
+  .tl-k { color:#9ca3af; width:28px; flex-shrink:0; }
+  .tl-v { color:#374151; }
+  .tl-dur { color:#2563eb; font-size:11px; }
+  .detail-btn { padding:3px 10px; height:auto; font-size:12px; }
+  .modal-mask { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:99;
+                align-items:center; justify-content:center; padding:20px; }
+  .modal-mask.show { display:flex; }
+  .modal { background:#fff; border-radius:10px; padding:22px 24px; max-width:660px;
+           width:100%; max-height:82vh; overflow:auto; position:relative; }
+  .modal h3 { font-size:16px; margin:0 0 12px; padding-right:32px; word-break:break-word; }
+  .modal-close { position:absolute; top:10px; right:14px; background:none; color:#9ca3af;
+                 font-size:24px; padding:0; height:auto; line-height:1; }
+  .modal-close:hover { color:#1c2128; background:none; }
+  .dmeta { font-size:12px; color:#6b7280; margin:4px 0; }
+  .dsec { font-size:12px; font-weight:500; color:#374151; margin:14px 0 6px; }
+  .modal pre { background:#f8f9fb; border:1px solid #e5e7eb; border-radius:6px; padding:10px 12px;
+               white-space:pre-wrap; word-break:break-word; font:12px/1.6 ui-monospace,Menlo,monospace;
+               color:#374151; margin:0; }
+  .modal pre.derr { color:#b91c1c; background:#fef2f2; border-color:#fecaca; }
+  /* 安全加固：用户条 / 登录遮罩 / 管理区块 */
+  .userbar { display:flex; align-items:center; gap:10px; justify-content:flex-end;
+             margin:6px 0 2px; font-size:12px; color:#6b7280; }
+  .userbar .who { color:#374151; font-weight:500; }
+  .role-badge { font-size:11px; padding:2px 8px; border-radius:10px; background:#eef2ff; color:#4338ca; border:1px solid #e0e7ff; }
+  .role-badge.admin { background:#fef3c7; color:#92400e; border-color:#fde68a; }
+  .linkbtn { background:none; border:none; color:#2563eb; cursor:pointer; font-size:12px; padding:2px 6px; }
+  .linkbtn:hover { text-decoration:underline; }
+  .login-mask { position:fixed; inset:0; background:rgba(17,24,39,.55); display:none;
+                align-items:center; justify-content:center; z-index:50; }
+  .login-mask.show { display:flex; }
+  .login-box { background:#fff; border-radius:12px; padding:28px 30px; width:340px; max-width:90vw;
+               box-shadow:0 10px 40px rgba(0,0,0,.2); }
+  .login-box h3 { margin:0 0 4px; font-size:17px; }
+  .login-box p { margin:0 0 16px; color:#6b7280; font-size:12px; }
+  .login-box label { display:block; font-size:12px; color:#374151; margin:10px 0 4px; }
+  .login-box input { width:100%; padding:9px 10px; border:1px solid #d1d5db; border-radius:7px; font-size:13px; }
+  .login-box button { width:100%; margin-top:16px; padding:10px; background:#2563eb; color:#fff;
+                      border:none; border-radius:7px; font-size:14px; cursor:pointer; }
+  .login-box button:disabled { opacity:.6; cursor:not-allowed; }
+  .login-err { color:#b91c1c; font-size:12px; margin-top:10px; min-height:16px; }
+  .admin-only { display:none; }
+  body.admin-view .admin-only { display:revert; }
+  td.mono, .mono { font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+  .pill { font-size:11px; padding:1px 7px; border-radius:9px; }
+  .pill.ok { background:#ecfdf5; color:#047857; }
+  .pill.no { background:#fef2f2; color:#b91c1c; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>任务下发与 Agent 协作中心 <small>服务端指派 → 客户端配对 → 只有该 Agent 凭凭证领取并执行</small></h1>
+  <div class="userbar" id="userbar">
+    <span id="user-info" class="who">未登录</span>
+    <button class="linkbtn" id="btn-logout" style="display:none">退出登录</button>
+  </div>
+  <div class="nav">
+    <a href="#sec-dispatch">① 下发任务</a>
+    <a href="#sec-board">② 任务看板</a>
+    <a href="#sec-agents">③ Agent 管理中心</a>
+    <a href="#sec-pair">④ 如何配对</a>
+    <a href="#sec-workbench">⑤ Agent 工作台</a>
+    <a href="#sec-selftest">⑥ 功能自检</a>
+    <a href="#sec-users" class="admin-only">⑦ 用户管理</a>
+    <a href="#sec-audit" class="admin-only">⑧ 审计日志</a>
+  </div>
+
+  <div class="card" id="sec-dispatch">
+    <h2>① 下发任务</h2>
+    <p class="desc">任务只会下发给指定的、已登记的 Agent，只有它凭凭证才能领取执行。</p>
+    <form id="form-task">
+      <label>指派给（已登记的 Agent）<input id="assignee" required list="agent-options" placeholder="例如：agent-1"></label>
+      <datalist id="agent-options"></datalist>
+      <label>任务标题<input id="title" required placeholder="例如：生成日报"></label>
+      <label>交给哪个工具执行
+        <select id="executor" style="padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;background:#fff;color:#1c2128">
+          <option value="shell">shell 命令（默认）</option>
+          <option value="claude">Claude Code</option>
+          <option value="codex">Codex</option>
+          <option value="workbuddy">WorkBuddy / CodeBuddy</option>
+          <option value="chatgpt">ChatGPT（OpenAI API）</option>
+          <option value="echo">仅回显（演示）</option>
+          <option value="custom">自定义模板…</option>
+        </select>
+      </label>
+      <label>具体命令 / 任务描述<input id="command" required placeholder="例如：echo hello；选 AI 工具时填任务描述"></label>
+      <label id="custom-exec-label" style="display:none;flex-basis:100%">自定义命令模板（用 {task} 引用任务）
+        <input id="custom-exec" placeholder='例如：my-agent run "{task}"'></label>
+      <button type="submit">下发</button>
+    </form>
+    <div class="hint" id="task-hint"></div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div id="sec-board">
+    <div class="subhead">② 任务看板 <span class="muted">（最新任务在最上，点结果看详情）</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>任务</th><th>指派给</th><th>状态</th><th>进展</th><th>创建时间</th><th>运行开始</th><th>结果</th></tr></thead>
+        <tbody id="task-rows"><tr><td colspan="8" class="muted">加载中...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="sec-agents">
+    <h2>③ Agent 管理中心</h2>
+    <p class="desc">登记 Agent、生成一次性配对码、查看在线与配对状态、随时撤销凭证。所有操作都在这里完成。</p>
+    <form id="form-agent">
+      <label>Agent 名字<input id="new-agent" required placeholder="例如：agent-1"></label>
+      <button type="submit">登记并生成配对码</button>
+    </form>
+    <div class="hint" id="agent-hint"></div>
+    <div class="agent-toolbar">
+      <label><input type="checkbox" id="show-archived"> 显示已归档 Agent</label>
+      <span class="muted" id="archived-count"></span>
+      <span class="muted" style="margin-left:auto">有分类的按分类分组；归档的 Agent 隐藏且停止接活，可随时恢复</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Agent / 分类</th><th>配对状态</th><th>在线 / 最近活跃</th><th>已领任务</th><th>配对 / 归档时间</th><th style="text-align:right">操作</th></tr></thead>
+        <tbody id="agent-rows"><tr><td colspan="6" class="muted">加载中...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="sec-pair">
+    <h2>④ 如何配对</h2>
+    <p class="desc">在③登记 Agent 后会得到一次性配对码。配对码只显示这一次，10 分钟内有效、只能用一次。把下面的命令复制到 Agent 所在机器执行即可。</p>
+    <ol class="steps">
+      <li>服务端已在「Agent 管理中心」登记 Agent 并生成配对码（下方）。</li>
+      <li>在 <b>Agent 所在机器</b>执行换凭证命令，凭证保存在本机（权限 600），服务端只存哈希。</li>
+      <li>在同一台机器启动 Agent，它会用凭证只领取指派给自己的任务；未配对 / 被撤销的一律领不到。</li>
+    </ol>
+    <div class="pair-result" id="pair-result">
+      <div style="font-size:13px;color:#1f2937;font-weight:500">配对 Agent：<span id="pair-name"></span></div>
+      <div class="muted" style="margin-top:2px">把配对码复制给 Agent 端（只显示这一次）</div>
+      <div class="code-box">
+        <span class="code" id="pair-code" title="点击复制配对码"></span>
+        <button class="ghost sm" id="copy-code">复制配对码</button>
+        <span class="muted" id="pair-expire"></span>
+      </div>
+      <div style="font-size:12px;color:#374151;margin-bottom:4px">第 ② 步 · 在 Agent 机器执行：</div>
+      <div class="cmd"><code id="cmd-pair"></code><button id="copy-pair">复制</button></div>
+      <div style="font-size:12px;color:#374151;margin:10px 0 4px">第 ③ 步 · 启动 Agent：</div>
+      <div class="cmd"><code id="cmd-start"></code><button id="copy-start">复制</button></div>
+    </div>
+    <div class="muted" id="pair-empty">还没有配对码。在上方「Agent 管理中心」登记一个 Agent，配对码和命令会显示在这里。</div>
+  </div>
+
+  <div class="card" id="sec-workbench">
+    <h2>⑤ Agent 工作台 <span class="muted">（在页面里就能模拟 Agent 完整走一遍）</span></h2>
+    <p class="desc">不想开命令行？在这里用配对码接入、领取指派任务、填写结果回传，完整闭环可视化操作。真实 Agent 依然可以用 CLI（<code class="inline">agent.py</code>）接入，两者协议完全一致。</p>
+    <form id="form-work-pair">
+      <label>Agent 名字<input id="work-name" required placeholder="例如：web-agent"></label>
+      <label>一次性配对码<input id="work-code" required placeholder="在③生成，例如 A1B2-C3D4" style="text-transform:uppercase"></label>
+      <button type="submit">接入（兑换凭证）</button>
+      <button type="button" class="ghost" id="work-reset">重置</button>
+    </form>
+    <div class="work-state" id="work-state">未接入。填入名字与配对码后点「接入」——配对码在「③ Agent 管理中心」生成。</div>
+    <div id="work-run" style="display:none">
+      <button id="work-claim">领取指派给我的任务</button>
+      <span class="muted" id="work-claim-hint" style="margin-left:10px"></span>
+      <div id="work-task-box"></div>
+    </div>
+  </div>
+
+  <div class="card" id="sec-selftest">
+    <h2>⑥ 功能自检 <span class="muted">（一键自动验证每个功能）</span></h2>
+    <p class="desc">点击按钮，自动逐项真实调用全部功能（配对、下发、定向领取、回传、撤销、并发、迁移等），每项显示 PASS／FAIL。自检在独立临时库上运行，不影响现有任务与 Agent 数据。也可命令行运行：<code class="inline">python3 selftest.py</code>。</p>
+    <button id="btn-selftest">▶ 运行功能自检</button>
+    <span class="muted" id="selftest-time" style="margin-left:10px"></span>
+    <div class="selftest-summary" id="selftest-summary">尚未运行。</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th style="width:44px">#</th><th>功能点</th><th style="width:70px">结果</th><th>说明</th></tr></thead>
+        <tbody id="selftest-rows"><tr><td colspan="4" class="muted">点击「运行功能自检」开始</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card admin-only" id="sec-users">
+    <h2>⑦ 用户管理 <span class="muted">（管理员专属 · 每个账号可管理自己的 N 个 Agent）</span></h2>
+    <p class="desc">角色：<b>admin</b> 全局管理 / <b>operator</b> 管理自己的 Agent 与任务 / <b>viewer</b> 只读。只有管理员能管理用户与查看审计。</p>
+    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:10px 0">
+      <label class="muted" style="font-size:12px">用户名<input id="u-name" class="inline" style="display:block;width:130px;padding:6px;margin-top:2px" placeholder="字母数字，≥3位"></label>
+      <label class="muted" style="font-size:12px">显示名<input id="u-display" class="inline" style="display:block;width:130px;padding:6px;margin-top:2px" placeholder="选填"></label>
+      <label class="muted" style="font-size:12px">密码<input id="u-pass" type="password" class="inline" style="display:block;width:150px;padding:6px;margin-top:2px" placeholder="≥8位，含两类字符"></label>
+      <label class="muted" style="font-size:12px">角色<select id="u-role" class="inline" style="display:block;width:110px;padding:6px;margin-top:2px">
+        <option value="operator">operator</option><option value="viewer">viewer</option><option value="admin">admin</option>
+      </select></label>
+      <button id="btn-user-add">+ 新建用户</button>
+      <span class="muted" id="u-msg" style="font-size:12px"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>用户名</th><th>显示名</th><th>角色</th><th>状态</th><th>最近登录</th><th>操作</th></tr></thead>
+        <tbody id="users-rows"><tr><td colspan="7" class="muted">加载中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card admin-only" id="sec-audit">
+    <h2>⑧ 审计日志 <span class="muted">（谁 · 何时 · 对什么 · 来源 IP）</span></h2>
+    <div class="row" style="display:flex;gap:8px;margin:10px 0;align-items:center">
+      <label class="muted" style="font-size:12px">条数<select id="audit-limit" class="inline" style="padding:6px;margin-left:4px">
+        <option>50</option><option>100</option><option>200</option></select></label>
+      <button id="btn-audit-refresh">刷新审计</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th style="width:150px">时间</th><th>操作者</th><th>动作</th><th>对象</th><th>IP</th><th>结果</th></tr></thead>
+        <tbody id="audit-rows"><tr><td colspan="6" class="muted">加载中…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="foot">页面每 2 秒自动刷新。也可用命令行：<code class="inline">python3 ctl.py agents</code>、<code class="inline">python3 ctl.py revoke agent-1</code>、<code class="inline">python3 selftest.py</code>。</div>
+</div>
+
+<div class="modal-mask" id="detail-mask">
+  <div class="modal">
+    <button class="modal-close" id="detail-close" aria-label="关闭">×</button>
+    <h3 id="detail-title"></h3>
+    <div id="detail-body"></div>
+  </div>
+</div>
+
+<div class="login-mask show" id="login-mask">
+  <form class="login-box" id="login-form">
+    <h3>登录调度中心</h3>
+    <p>管理操作需要身份认证。首次启动请查看服务端控制台打印的初始管理员密码。</p>
+    <label for="login-user">用户名</label>
+    <input id="login-user" autocomplete="username" value="admin">
+    <label for="login-pass">密码</label>
+    <input id="login-pass" type="password" autocomplete="current-password">
+    <button type="submit" id="btn-login">登录</button>
+    <div class="login-err" id="login-err"></div>
+  </form>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const token = () => localStorage.getItem('dispatch_token') || '';
+const label = {pending:'待领取', running:'执行中', succeeded:'已完成', failed:'失败'};
+const executorLabel = e => ({shell:'shell', claude:'Claude Code', codex:'Codex', workbuddy:'WorkBuddy', chatgpt:'ChatGPT', echo:'回显'})[e] || e;
+const fmt = t => t ? new Date(t * 1000).toLocaleString('zh-CN', {hour12:false}) : '-';
+const fmtTime = t => t ? new Date(t * 1000).toLocaleTimeString('zh-CN', {hour12:false}) : '-';
+const fmtDate = t => t ? new Date(t * 1000).toLocaleDateString('zh-CN', {month:'2-digit', day:'2-digit'}) : '';
+// 相对时间：把 Unix 秒转成"刚刚 / 3 分钟前 / 2 小时前 / 3 天前"
+const ago = t => {
+  if (!t) return '从未';
+  const s = Math.max(0, Math.floor(Date.now() / 1000 - t));
+  if (s < 10) return '刚刚';
+  if (s < 60) return s + ' 秒前';
+  if (s < 3600) return Math.floor(s / 60) + ' 分钟前';
+  if (s < 86400) return Math.floor(s / 3600) + ' 小时前';
+  return Math.floor(s / 86400) + ' 天前';
+};
+const dur = (a, b) => {
+  if (a == null || b == null) return '';
+  const s = Math.max(0, Math.round(b - a));
+  if (s < 60) return s + '秒';
+  if (s < 3600) return Math.floor(s/60) + '分' + (s%60) + '秒';
+  return Math.floor(s/3600) + '时' + Math.floor((s%3600)/60) + '分';
+};
+const timeline = t => {
+  const created = t.created_at, claimed = t.claimed_at, finished = t.finished_at;
+  const sameDay = claimed && created &&
+    new Date(claimed*1000).toDateString() === new Date(created*1000).toDateString();
+  const q = dur(created, claimed), e = dur(claimed, finished);
+  return `<div class="tl">
+    <div class="tl-row"><span class="tl-k">下发</span><span class="tl-v">${fmtDate(created)} ${fmtTime(created)}</span></div>
+    <div class="tl-row"><span class="tl-k">开始</span><span class="tl-v">${sameDay ? fmtTime(claimed) : fmt(claimed)}</span>${q ? `<span class="tl-dur">排队 ${q}</span>` : ''}</div>
+    <div class="tl-row"><span class="tl-k">完成</span><span class="tl-v">${sameDay ? fmtTime(finished) : fmt(finished)}</span>${e ? `<span class="tl-dur">耗时 ${e}</span>` : ''}</div>
+  </div>`;
+};
+function showDetail(t) {
+  if (!t) return;
+  const isErr = !!t.error && !t.result;
+  const body = [
+    `<div class="dmeta">指派给 <b>${esc(t.assignee)}</b>${t.agent_id ? ' · 由 ' + esc(t.agent_id) + ' 执行' : ''}</div>`,
+    `<div class="dmeta">状态 <span class="tag t-${t.status}">${label[t.status] || esc(t.status)}</span>${looksFake(t) ? ' · <span style="color:#b91c1c">⚠ 疑似空跑</span>' : ''}</div>`,
+    `<div class="dsec">任务内容</div>`,
+    `<pre>${esc((t.payload || {}).command || '')}</pre>`,
+    `<div class="dsec">${isErr ? '错误信息' : '运行结果'}</div>`,
+    `<pre class="${isErr ? 'derr' : ''}">${esc(t.result || t.error || '(空)')}</pre>`,
+    `<div class="dsec">执行时间线</div>`,
+    timeline(t),
+  ].join('');
+  $('detail-title').textContent = `#${t.id} ${t.title}`;
+  $('detail-body').innerHTML = body;
+  $('detail-mask').classList.add('show');
+}
+const looksFake = t => t.status === 'succeeded' &&
+  /authentication required|please use \/login|please sign in/i.test(t.result || '');
+const agentState = a => a.archived
+  ? '<span class="tag t-revoked">已归档</span>'
+  : a.revoked
+    ? '<span class="tag t-revoked">已撤销</span>'
+    : (a.paired ? '<span class="tag t-paired">已配对</span>' : '<span class="tag t-wait">待配对</span>');
+const origin = window.location.origin;
+
+async function api(path, opt = {}) {
+  const headers = {'Content-Type':'application/json'};
+  if (token()) headers['X-Dispatch-Token'] = token();
+  const r = await fetch(path, Object.assign({}, opt, {headers, credentials:'same-origin'}));
+  if (r.status === 401) { showLogin('登录已失效，请重新登录'); throw new Error('未登录'); }
+  if (!r.ok) {
+    let msg = r.statusText;
+    try { msg = (await r.json()).error || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+function copy(text, btn, original) {
+  const done = () => { const o = btn.textContent; btn.textContent = '已复制'; setTimeout(() => btn.textContent = original, 1400); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallback());
+  } else { fallback(); }
+  function fallback() {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+    ta.select(); try { document.execCommand('copy'); done(); } catch (_) {} document.body.removeChild(ta);
+  }
+}
+
+async function refresh() {
+  try {
+    const [taskData, agentData] = await Promise.all([api('/api/tasks'), api('/api/agents')]);
+    // 按创建时间逆序（最新在下发的排最前）；无 created_at 时退回按 id 逆序
+    const tasks = taskData.tasks.slice().sort((a, b) =>
+      (b.created_at || 0) - (a.created_at || 0) || b.id - a.id);
+    const agents = agentData.agents;
+
+    const c = {pending:0, running:0, succeeded:0, failed:0};
+    tasks.forEach(t => { c[t.status] = (c[t.status] || 0) + 1; });
+    $('stats').innerHTML = Object.keys(c).map(k =>
+      `<div class="stat"><b class="t-${k}">${c[k]}</b><span>${label[k]}</span></div>`).join('');
+
+    // ---- Agent 分类 / 归档 ----
+    const showArchived = $('show-archived').checked;
+    const archivedCount = agents.filter(a => a.archived).length;
+    $('archived-count').textContent = archivedCount ? `（${archivedCount} 个已归档）` : '';
+    // 默认隐藏归档；勾选时归档排最后
+    const visible = agents.filter(a => showArchived || !a.archived);
+    // 组内排序：在线优先，再按最近活跃倒序，再按名字
+    const byActive = (a, b) =>
+      (b.online ? 1 : 0) - (a.online ? 1 : 0)
+      || (b.last_seen || 0) - (a.last_seen || 0)
+      || a.name.localeCompare(b.name);
+    const agentRow = a => {
+      const cat = a.category
+        ? `<span class="cat-badge">${esc(a.category)}</span>`
+        : `<span class="cat-badge none">未分类</span>`;
+      const rowCls = a.archived ? 'agent-archived' : (a.online ? 'agent-online' : 'agent-offline');
+      return `<tr class="${rowCls}">
+        <td><b>${esc(a.name)}</b><br>${cat}</td>
+        <td>${agentState(a)}</td>
+        <td><span class="dot ${a.online?'on':''}"></span>${a.online
+          ? `<span class="on-badge">在线</span>`
+          : `<span class="off-badge">离线</span>`}<span class="muted" style="margin-left:6px">${ago(a.last_seen)}活跃</span></td>
+        <td>${a.claimed_count} 单</td>
+        <td class="muted">${a.archived && a.archived_at ? '归档 ' + fmt(a.archived_at) : (a.paired_at ? fmt(a.paired_at) : '-')}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <input class="cat-input" data-cat="${esc(a.name)}" value="${esc(a.category || '')}" placeholder="分类…" title="回车保存分类">
+          ${a.archived
+            ? `<button class="ghost sm" data-restore="${esc(a.name)}">恢复</button>`
+            : `<button class="ghost sm" data-gen="${esc(a.name)}">配对码</button>`}
+          ${!a.archived && (a.paired || a.revoked) ? `<button class="danger sm" data-revoke="${esc(a.name)}">撤销</button>` : ''}
+          ${!a.archived ? `<button class="ghost sm" data-archive="${esc(a.name)}">归档</button>` : ''}
+        </td>
+      </tr>`;
+    };
+    const groupRow = (title, n) => `<tr class="agent-group"><td colspan="6">${title}（${n}）</td></tr>`;
+    // 按分类分组：有分类的各自一组（组内在线优先），最后"未分类"
+    const groups = new Map();
+    visible.forEach(a => {
+      const key = a.category || '';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(a);
+    });
+    const sortedCats = [...groups.keys()].sort((x, y) => {
+      if (!x) return 1;   // 未分类放最后
+      if (!y) return -1;
+      return x.localeCompare(y);
+    });
+    $('agent-rows').innerHTML = visible.length
+      ? sortedCats.map(key => {
+          const list = groups.get(key).sort(byActive);
+          const title = key ? `📁 ${esc(key)}` : '未分类';
+          return groupRow(title, list.length) + list.map(agentRow).join('');
+        }).join('')
+      : '<tr><td colspan="6" class="muted">' + (archivedCount && !showArchived
+          ? `所有 Agent 都已归档（${archivedCount} 个），勾选上方「显示已归档」可查看。`
+          : '还没有登记 Agent。在上方输入名字生成配对码即可登记。') + '</td></tr>';
+
+    // 下发任务下拉：排除归档与撤销
+    $('agent-options').innerHTML = agents.filter(a => !a.revoked && !a.archived)
+      .map(a => `<option value="${esc(a.name)}"></option>`).join('');
+
+    $('agent-rows').querySelectorAll('[data-gen]').forEach(el => {
+      el.onclick = () => genPair(el.dataset.gen);
+    });
+    $('agent-rows').querySelectorAll('[data-revoke]').forEach(el => {
+      el.onclick = () => doRevoke(el.dataset.revoke);
+    });
+    $('agent-rows').querySelectorAll('[data-archive]').forEach(el => {
+      el.onclick = () => doArchive(el.dataset.archive, true);
+    });
+    $('agent-rows').querySelectorAll('[data-restore]').forEach(el => {
+      el.onclick = () => doArchive(el.dataset.restore, false);
+    });
+    $('agent-rows').querySelectorAll('[data-cat]').forEach(el => {
+      el.onkeydown = e => {
+        if (e.key === 'Enter') { e.preventDefault(); doCategory(el.dataset.cat, el.value.trim()); }
+      };
+    });
+
+    window._taskMap = {};
+    tasks.forEach(t => { window._taskMap[t.id] = t; });
+
+    $('task-rows').innerHTML = tasks.length ? tasks.map(t => {
+      const hasOut = !!(t.result || t.error);
+      const shortOut = hasOut ? String(t.result || t.error).replace(/\s+/g, ' ').slice(0, 26) : '';
+      return `<tr>
+        <td>#${t.id}</td>
+        <td>${esc(t.title)}${(t.payload||{}).executor ? ` <span class="tag t-paired">⚙ ${esc(executorLabel(t.payload.executor))}</span>` : ''}<div class="muted">${esc((t.payload||{}).command)}</div></td>
+        <td><b>${esc(t.assignee)}</b><div class="muted">${t.agent_id ? '由 ' + esc(t.agent_id) + ' 执行' : '等待该 Agent 领取'}</div></td>
+        <td><span class="tag t-${t.status}">${label[t.status] || esc(t.status)}</span>${looksFake(t) ? '<span class="tag t-failed" style="margin-left:4px" title="退出码为0但输出为认证失败提示，实际未执行">⚠ 疑似空跑</span>' : ''}</td>
+        <td>${t.progress || 0}%<div class="muted">${esc(t.message)}</div></td>
+        <td class="muted" style="white-space:nowrap">${fmt(t.created_at)}</td>
+        <td class="muted" style="white-space:nowrap">${t.claimed_at ? fmt(t.claimed_at) : '-'}</td>
+        <td>${hasOut
+          ? `<button class="ghost sm detail-btn" data-detail="${t.id}" title="点击查看完整结果">${esc(shortOut)}… ▸</button>`
+          : '<span class="muted">-</span>'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="8" class="muted">暂无任务，先登记 Agent 再下发吧</td></tr>';
+
+    $('task-rows').querySelectorAll('[data-detail]').forEach(el => {
+      el.onclick = () => showDetail(window._taskMap[el.dataset.detail]);
+    });
+  } catch (e) {
+    $('task-rows').innerHTML = `<tr><td colspan="7">连接失败：${esc(e.message)}</td></tr>`;
+  }
+}
+
+async function genPair(name) {
+  name = (name || '').trim();
+  if (!name) { $('agent-hint').textContent = '请先填写 Agent 名字'; return; }
+  $('agent-hint').textContent = '';
+  try {
+    const r = await api('/api/agents/pair', {method:'POST', body: JSON.stringify({name})});
+    const pairCmd = `python3 agent.py pair --server ${origin} --name ${r.agent_id} --code ${r.code}`;
+    const startCmd = `python3 agent.py start`;
+    $('pair-name').textContent = r.agent_id;
+    $('pair-code').textContent = r.code;
+    $('pair-expire').textContent = `${r.ttl} 秒内有效 · 仅一次`;
+    $('cmd-pair').textContent = pairCmd;
+    $('cmd-start').textContent = startCmd;
+    $('pair-result').classList.add('show');
+    $('pair-empty').style.display = 'none';
+    $('new-agent').value = '';
+    $('assignee').value = r.agent_id;
+    $('agent-hint').textContent = `已登记 ${r.agent_id}，配对码已生成在「如何配对」区，请复制给 Agent 端`;
+    $('copy-code').onclick = () => copy(r.code, $('copy-code'), '复制配对码');
+    $('pair-code').onclick = () => copy(r.code, $('copy-code'), '复制配对码');
+    $('copy-pair').onclick = () => copy(pairCmd, $('copy-pair'), '复制');
+    $('copy-start').onclick = () => copy(startCmd, $('copy-start'), '复制');
+    $('sec-pair').scrollIntoView({behavior:'smooth', block:'center'});
+    refresh();
+  } catch (e) { $('agent-hint').textContent = '生成失败：' + e.message; }
+}
+
+async function doRevoke(name) {
+  if (!confirm('确定撤销 ' + name + ' 的配对凭证？该 Agent 会立即无法领取和回传任务。')) return;
+  try {
+    await api('/api/agents/revoke', {method:'POST', body: JSON.stringify({name})});
+    $('agent-hint').textContent = `已撤销 ${name} 的凭证`;
+    refresh();
+  } catch (e) { $('agent-hint').textContent = '撤销失败：' + e.message; }
+}
+
+async function doArchive(name, archived) {
+  const msg = archived
+    ? `确定归档 ${name}？它将从主页隐藏并停止领取任务（凭证保留，可随时恢复）。`
+    : `确定恢复 ${name}？它将重新显示并恢复接活。`;
+  if (!confirm(msg)) return;
+  try {
+    await api('/api/agents/archive', {method:'POST', body: JSON.stringify({name, archived})});
+    $('agent-hint').textContent = archived ? `已归档 ${name}` : `已恢复 ${name}`;
+    refresh();
+  } catch (e) { $('agent-hint').textContent = '操作失败：' + e.message; }
+}
+
+async function doCategory(name, category) {
+  try {
+    await api('/api/agents/category', {method:'POST', body: JSON.stringify({name, category})});
+    $('agent-hint').textContent = category ? `已将 ${name} 归类为「${category}」` : `已清除 ${name} 的分类`;
+    refresh();
+  } catch (e) { $('agent-hint').textContent = '分类保存失败：' + e.message; }
+}
+
+$('form-agent').addEventListener('submit', e => { e.preventDefault(); genPair($('new-agent').value); });
+
+$('executor').addEventListener('change', () => {
+  $('custom-exec-label').style.display = $('executor').value === 'custom' ? 'flex' : 'none';
+});
+
+$('form-task').addEventListener('submit', async e => {
+  e.preventDefault();
+  const exec = $('executor').value;
+  const executor = exec === 'custom' ? $('custom-exec').value.trim() : exec;
+  const payload = {command: $('command').value};
+  if (executor && executor !== 'shell') payload.executor = executor;
+  try {
+    const r = await api('/api/tasks', {method:'POST', body: JSON.stringify({
+      title: $('title').value, assignee: $('assignee').value.trim(), payload: payload
+    })});
+    $('task-hint').textContent = `已把任务 #${r.task.id} 指派给 ${r.task.assignee}，等待它凭凭证领取`;
+    $('title').value = '';
+    refresh();
+  } catch (err) { $('task-hint').textContent = '下发失败：' + err.message; }
+});
+
+// ===== ⑤ Agent 工作台：在页面里模拟 Agent 端，凭证只存内存 =====
+let work = {name:'', token:''};  // 凭证仅存内存，刷新页面即失效
+
+async function agentApi(path, opt = {}) {
+  const headers = {'Content-Type':'application/json'};
+  if (work.token) headers['X-Agent-Token'] = work.token;
+  const r = await fetch(path, Object.assign({}, opt, {headers}));
+  if (!r.ok) {
+    let msg = r.statusText;
+    try { msg = (await r.json()).error || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+function workState(text, isError) {
+  $('work-state').textContent = text;
+  $('work-state').style.color = isError ? '#b91c1c' : '#1e40af';
+  $('work-state').style.background = isError ? '#fef2f2' : '#f8fbff';
+  $('work-state').style.borderColor = isError ? '#fecaca' : '#bfdbfe';
+}
+
+$('form-work-pair').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = $('work-name').value.trim(), code = $('work-code').value.trim().toUpperCase();
+  if (!name || !code) { workState('请填写 Agent 名字和配对码', true); return; }
+  try {
+    const r = await agentApi('/api/pair', {method:'POST', body: JSON.stringify({name, code})});
+    work = {name: r.agent_id, token: r.token};
+    workState(`已接入 ${r.agent_id}，凭证已就位（仅存当前页面内存，刷新即失效）。现在可以领取指派任务了。`, false);
+    $('work-run').style.display = 'block';
+    $('work-code').value = '';
+    $('work-claim-hint').textContent = '';
+    $('work-task-box').innerHTML = '';
+  } catch (err) { workState('接入失败：' + err.message, true); }
+});
+
+$('work-reset').onclick = () => {
+  work = {name:'', token:''};
+  $('work-run').style.display = 'none';
+  $('work-task-box').innerHTML = '';
+  $('work-name').value = ''; $('work-code').value = '';
+  workState('已重置。填入名字与配对码后点「接入」。', false);
+};
+
+$('work-claim').onclick = async () => {
+  $('work-claim-hint').textContent = '领取中…';
+  $('work-task-box').innerHTML = '';
+  try {
+    const r = await agentApi('/api/tasks/claim', {method:'POST', body: JSON.stringify({agent_id: work.name})});
+    if (!r.task) {
+      $('work-claim-hint').textContent = '暂无指派给我的待领任务';
+      return;
+    }
+    const t = r.task;
+    $('work-claim-hint').textContent = `领到任务 #${t.id}`;
+    const cmd = esc((t.payload || {}).command || '');
+    $('work-task-box').innerHTML = `<div class="work-task">
+      <div><b>#${t.id} ${esc(t.title)}</b> <span class="tag t-running">${esc(t.status)}</span></div>
+      <div class="meta">指派给 ${esc(t.assignee)} · 命令：</div>
+      <div class="cmdline">${cmd}</div>
+      <div class="subhead">执行后回传结果（在这里模拟 Agent 的执行输出）：</div>
+      <form id="form-work-finish">
+        <label>成功结果<input id="work-result" placeholder="例如：report-ok"></label>
+        <button type="submit">完成并回传</button>
+        <button type="button" class="danger" id="work-fail">标记失败</button>
+      </form>
+    </div>`;
+    $('form-work-finish').addEventListener('submit', e => {
+      e.preventDefault();
+      workFinish(true, $('work-result').value || '(页面模拟执行完成)');
+    });
+    $('work-fail').onclick = () => workFinish(false, '页面模拟：执行失败');
+  } catch (err) { $('work-claim-hint').textContent = '领取失败：' + err.message; }
+};
+
+async function workFinish(succeeded, text) {
+  const cur = $('work-task-box').querySelector('.work-task b');
+  if (!cur) return;
+  const tid = parseInt(cur.textContent.match(/#(\d+)/)[1], 10);
+  const path = `/api/tasks/${tid}/${succeeded ? 'complete' : 'fail'}`;
+  try {
+    await agentApi(path, {method:'POST', body: JSON.stringify(
+      succeeded ? {agent_id: work.name, result: text} : {agent_id: work.name, error: text}
+    )});
+    workState(`任务 #${tid} 已回传「${succeeded ? '完成' : '失败'}」，看板已更新。可继续领取下一个任务。`, false);
+    $('work-task-box').innerHTML = '';
+    $('work-claim-hint').textContent = '';
+    refresh();
+  } catch (err) { workState('回传失败：' + err.message, true); }
+}
+
+// ===== ⑥ 功能自检：一键验证全部功能（区块已下移，编号保持⑥）=====
+$('btn-selftest').onclick = async () => {
+  const btn = $('btn-selftest');
+  btn.disabled = true; btn.textContent = '运行中…';
+  $('selftest-summary').textContent = '正在逐项真实调用全部功能…';
+  $('selftest-rows').innerHTML = '<tr><td colspan="4" class="muted">运行中，请稍候…</td></tr>';
+  try {
+    const t0 = performance.now();
+    const r = await api('/api/selftest');
+    const ms = Math.round(performance.now() - t0);
+    $('selftest-time').textContent = `耗时 ${ms}ms`;
+    $('selftest-summary').innerHTML = r.passed
+      ? `<b style="color:#15803d">全部通过：${r.ok}/${r.total} 项 PASS</b>`
+      : `<b style="color:#b91c1c">存在失败：${r.ok}/${r.total} 通过，${r.failed} 项 FAIL</b>`;
+    $('selftest-rows').innerHTML = r.items.map((it, i) => `<tr>
+      <td>${i + 1}</td>
+      <td>${esc(it.name)}</td>
+      <td><span class="tag ${it.passed ? 't-succeeded' : 't-failed'}">${it.passed ? 'PASS' : 'FAIL'}</span></td>
+      <td class="out2">${esc(it.detail)}</td>
+    </tr>`).join('');
+  } catch (err) {
+    $('selftest-summary').textContent = '自检请求失败：' + err.message;
+    $('selftest-rows').innerHTML = '';
+  } finally {
+    btn.disabled = false; btn.textContent = '▶ 重新运行功能自检';
+  }
+};
+
+// 结果详情弹窗：点关闭按钮或遮罩空白处关闭
+$('detail-close').onclick = () => $('detail-mask').classList.remove('show');
+$('detail-mask').onclick = e => {
+  if (e.target === $('detail-mask')) $('detail-mask').classList.remove('show');
+};
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') $('detail-mask').classList.remove('show');
+});
+
+// ===== 安全加固：登录 / 用户管理 / 审计 =====
+let currentUser = null;
+function showLogin(msg) {
+  $('login-mask').classList.add('show');
+  if (msg) $('login-err').textContent = msg;
+}
+function applyUser(user, isService) {
+  currentUser = user || null;
+  const isAdmin = user && (user.role === 'admin' || isService);
+  $('user-info').textContent = user ? (user.display_name || user.username) + (isService ? '（service）' : '') : '未登录';
+  $('btn-logout').style.display = (user && !isService) ? '' : 'none';
+  document.body.classList.toggle('admin-view', !!isAdmin);
+  if (isAdmin) { loadUsers(); loadAudit(); }
+}
+async function checkSession() {
+  try {
+    const r = await fetch('/api/me', {credentials:'same-origin'});
+    if (!r.ok) { showLogin(); return false; }
+    const j = await r.json();
+    applyUser(j.user, j.is_service);
+    $('login-mask').classList.remove('show');
+    return true;
+  } catch (_) { showLogin(); return false; }
+}
+$('login-form').onsubmit = async e => {
+  e.preventDefault();
+  $('btn-login').disabled = true; $('login-err').textContent = '';
+  try {
+    const r = await fetch('/api/login', {
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
+      body: JSON.stringify({username:$('login-user').value.trim(), password:$('login-pass').value})
+    });
+    const j = await r.json();
+    if (!r.ok) { $('login-err').textContent = j.error || '登录失败'; return; }
+    applyUser(j.user, false);
+    $('login-mask').classList.remove('show'); $('login-pass').value = '';
+    refresh();
+  } catch (err) { $('login-err').textContent = '网络错误：' + err.message; }
+  finally { $('btn-login').disabled = false; }
+};
+$('btn-logout').onclick = async () => {
+  await fetch('/api/logout', {method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin'});
+  currentUser = null; showLogin();
+};
+
+async function loadUsers() {
+  try {
+    const j = await api('/api/users');
+    $('users-rows').innerHTML = j.users.map(u => {
+      const canDel = u.role !== 'admin' || j.users.filter(x => x.role === 'admin').length > 1;
+      return `<tr>
+        <td class="mono">${u.id}</td><td>${esc(u.username)}</td><td>${esc(u.display_name || '-')}</td>
+        <td><span class="role-badge ${u.role === 'admin' ? 'admin' : ''}">${u.role}</span></td>
+        <td><span class="pill ${u.status === 'active' ? 'ok' : 'no'}">${u.status}</span></td>
+        <td>${esc(fmt(u.last_login_at))}</td>
+        <td>
+          <button class="linkbtn" onclick="userToggle(${u.id},'${u.status === 'active' ? 'disabled' : 'active'}')">${u.status === 'active' ? '禁用' : '启用'}</button>
+          <button class="linkbtn" onclick="userResetPw(${u.id})">重置密码</button>
+          ${canDel ? `<button class="linkbtn" onclick="userDelete(${u.id})">删除</button>` : ''}
+        </td></tr>`;
+    }).join('');
+  } catch (_) {}
+}
+async function userToggle(id, status) {
+  try { await api('/api/users/' + id, {method:'POST', body:JSON.stringify({op:'update', status})}); loadUsers(); }
+  catch (e) { $('u-msg').textContent = e.message; }
+}
+async function userResetPw(id) {
+  const pw = prompt('新密码（≥8位，含两类字符）：'); if (!pw) return;
+  try { await api('/api/users/' + id, {method:'POST', body:JSON.stringify({op:'update', password:pw})}); $('u-msg').textContent = '密码已重置'; }
+  catch (e) { $('u-msg').textContent = e.message; }
+}
+async function userDelete(id) {
+  if (!confirm('确定删除该用户？其名下 Agent 将转为无主。')) return;
+  try { await api('/api/users/' + id, {method:'POST', body:JSON.stringify({op:'delete'})}); loadUsers(); }
+  catch (e) { $('u-msg').textContent = e.message; }
+}
+$('btn-user-add').onclick = async () => {
+  $('u-msg').textContent = '';
+  try {
+    await api('/api/users', {method:'POST', body:JSON.stringify({
+      username:$('u-name').value.trim(), display_name:$('u-display').value.trim(),
+      password:$('u-pass').value, role:$('u-role').value})});
+    $('u-msg').textContent = '已创建'; $('u-name').value=''; $('u-display').value=''; $('u-pass').value='';
+    loadUsers();
+  } catch (e) { $('u-msg').textContent = e.message; }
+};
+
+async function loadAudit() {
+  try {
+    const j = await api('/api/audit?limit=' + $('audit-limit').value);
+    $('audit-rows').innerHTML = j.events.length ? j.events.map(e => `<tr>
+      <td class="mono">${esc(fmt(e.ts))}</td><td>${esc(e.actor)}</td>
+      <td class="mono">${esc(e.action)}</td><td>${esc(e.target || '-')}</td>
+      <td class="mono">${esc(e.ip || '-')}</td>
+      <td><span class="pill ${e.result === 'ok' ? 'ok' : 'no'}">${esc(e.result)}</span></td>
+    </tr>`).join('') : '<tr><td colspan="6" class="muted">暂无审计记录</td></tr>';
+  } catch (_) {}
+}
+$('btn-audit-refresh').onclick = loadAudit;
+$('show-archived').onchange = () => refresh();
+
+// 启动：先探测会话，登录成功后才轮询业务数据
+checkSession().then(ok => {
+  if (ok) refresh();
+  setInterval(() => { if (currentUser) refresh(); }, 2000);
+});
+</script>
+</body>
+</html>
